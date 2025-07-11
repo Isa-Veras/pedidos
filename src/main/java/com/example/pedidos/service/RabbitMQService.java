@@ -2,6 +2,7 @@ package com.example.pedidos.service;
 
 import com.example.pedidos.data.PedidoVO;
 import com.example.pedidos.domain.Cliente;
+import com.example.pedidos.domain.Item;
 import com.example.pedidos.domain.Pedido;
 import com.example.pedidos.exception.ClienteInvalidoException;
 import com.example.pedidos.repository.ClienteRepository;
@@ -39,14 +40,19 @@ public class RabbitMQService {
 
         }
         if (pedidoRepository.findByCode(pedidoVO.getCodigoPedido()) != null) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("Código de Pedido Existente");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Código de Pedido Existente");
 
         } else {
 
+            for (Item item : pedidoVO.getItens()){
+                if (item.getPreco() == null || item.getQuantidade() == null || item.getNome() == null ){
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Item possue campo incompletos" );
+                }
+            }
             Pedido novoPedido = new Pedido(cliente, Date.from(Instant.now()), Pedido.STATUS_NEW, pedidoVO.getCodigoPedido());
             novoPedido = pedidoRepository.save(novoPedido);
             pedidoVO.setIdPedido(novoPedido.getIdPedido());
-            
+
 
             sendToProcess(pedidoVO);
 
